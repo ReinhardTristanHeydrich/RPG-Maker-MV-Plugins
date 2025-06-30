@@ -62,7 +62,7 @@
 (function() {
   "use strict";
 
-  const PLUGIN_NAME = "CBF_NameInput";
+  const PLUGIN_NAME = "CBF_BetterNameInput";
   const PARAMS      = PluginManager.parameters(PLUGIN_NAME);
 
 function paramEval(key, def) {
