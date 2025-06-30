@@ -1,43 +1,43 @@
 /*:
  * @target MV
- * @plugindesc v1.00 Free Key Name Entry — teclado físico + grade Pokémon com opções personalizáveis. (Gratuito, sem dependências!)
+ * @plugindesc Name Input+: hybrid keyboard/grid name entry.
  * @author Charlie's Boyfriend
  *
  * @help
  * ────────────────────────────────────────────────────────────────────────────
- *  Este plugin permite que o jogador digite o nome de personagens livremente
- *  com o teclado físico (modo **Keyboard**) e alternar para a grade clássica
- *  (modo **Grid/Pokémon**) apertando as setas. Tudo é configurável.
+ *  This plugin allows players to enter character names freely using the
+ *  physical keyboard (**Keyboard Mode**) or switch to a classic character
+ *  grid (**Grid Mode**, similar to Pokémon) using the arrow keys.
  *
- *  » Controles padrão
- *     • Keyboard:  [ENTER] confirma  |  [BACKSPACE] apaga  |  ←↑↓→ muda p/ grade
- *     • Grid:      Selecione letras com setas | [ESC] volta p/ teclado
+ *  » Default Controls
+ *     • Keyboard Mode:  [ENTER] to confirm | [BACKSPACE] to delete | Arrow keys/←↑↓→ to switch to grid
+ *     • Grid Mode:      Use arrow keys to select | [ESC] to return to keyboard
  *
- *  » Parâmetros
- *     • KeyboardMsg   : Texto de ajuda exibido no modo teclado (suporta códigos)
- *     • QwertyLayout  : Mostrar a grade LATIN1 em layout QWERTY?
- *     • StartMode     : "keyboard" ou "grid" como modo inicial
- *     • RememberMode  : Lembrar o último modo usado (persiste em save)
+ *  » Parameters
+ *     • KeyboardMsg   : Help message shown in keyboard mode (supports control codes)
+ *     • QwertyLayout  : Reorder LATIN1 characters into QWERTY layout?
+ *     • StartMode     : Choose default input mode: "keyboard" or "grid"
+ *     • RememberMode  : Remembers the last used mode (persists across saves)
  *
- *  Não possui comandos de plugin. 100% plug‑and‑play.
+ *  No plugin commands. 100% plug-and-play.
  * ────────────────────────────────────────────────────────────────────────────
  *  Changelog
  * ────────────────────────────────────────────────────────────────────────────
- *  • v1.00  - Versão estável inicial
+ *  • v1.00 - Initial stable release
  *
  * @param KeyboardMsg
  * @text Keyboard Help Message
  * @type note
- * @desc Texto mostrado no modo teclado. Suporta códigos \C[n], etc.
- * @default "Type in this character's name.\nPress \\c[6]ENTER\\c[0] when you're done.\n\n-or-\n\nPress the \\c[6]arrow keys\\c[0] to switch\nto manual character entry.\nPress \\c[6]ESC\\c[0] to use to keyboard."
+ * @desc Message displayed during keyboard mode. Supports \C[n], etc.
+ * @default "Type in this character's name.\nPress \\c[6]ENTER\\c[0] when you're done.\n\n-or-\n\nPress the \\c[6]arrow keys\\c[0] to switch\nto manual character entry.\nPress \\c[6]ESC\\c[0] to use the keyboard."
  *
  * @param QwertyLayout
  * @text QWERTY Layout
  * @type boolean
  * @on  YES
  * @off NO
- * @desc Reorganizar LATIN1 para o layout QWERTY?
- * @default true
+ * @desc Reorder LATIN1 characters into a QWERTY layout?
+ * @default false
  *
  * @param StartMode
  * @text Starting Mode
@@ -46,7 +46,7 @@
  * @value keyboard
  * @option Grid
  * @value grid
- * @desc Qual modo a cena deve abrir por padrão?
+ * @desc Which mode should the name input scene start with?
  * @default keyboard
  *
  * @param RememberMode
@@ -54,27 +54,35 @@
  * @type boolean
  * @on  YES
  * @off NO
- * @desc Se ligado, usa o último modo utilizado pelo jogador.
- * @default true
+ * @desc If enabled, remembers the last used input mode across saves.
+ * @default false
  *
  */
 
+
 (function() {
+
+    //Default Values
+    const KeyboardMsg  = "Type in this character's name.\nPress \\c[6]ENTER\\c[0] when you're done.\n\n-or-\n\nPress the \\c[6]arrow keys\\c[0] to switch\nto manual character entry.\nPress \\c[6]ESC\\c[0] to use the keyboard."
+    const QwertyLayout = false
+    const StartMode    = "keyboard"
+    const RememberMode = false
+
   "use strict";
 
   const PLUGIN_NAME = "CBF_NameInput+";
   const PARAMS      = PluginManager.parameters(PLUGIN_NAME);
 
-function paramEval(key, def) {
-    const raw = PARAMS.hasOwnProperty(key) ? PARAMS[key] : "";
-    try {
-        const wrapped = /^\s*['"]/.test(raw) ? raw : `"${raw}"`; // adiciona aspas se faltar
-        return new Function("return (" + wrapped + ")")();
-    } catch (e) {
-        console.warn(`[FreeKeyNameEntry] Erro ao interpretar parâmetro "${key}":`, e);
-        return def;
+    function paramEval(key, def) {
+        const raw = PARAMS.hasOwnProperty(key) ? PARAMS[key] : "";
+        try {
+            const wrapped = /^\s*['"]/.test(raw) ? raw : `"${raw}"`;
+            return new Function("return (" + wrapped + ")")();
+        } catch (e) {
+            console.warn(`[FreeKeyNameEntry] Erro ao interpretar parâmetro "${key}":`, e);
+            return def;
+        }
     }
-}
 
   function splitLines(text) {
       return text.replace(/\\n/g, "\n").split(/\n/);
@@ -121,7 +129,7 @@ function paramEval(key, def) {
 
     Window_KeyNameFree.prototype.refresh = function() {
         this.contents.clear();
-        const msg = String(paramEval("KeyboardMsg", ""));
+        const msg = String(paramEval("KeyboardMsg", KeyboardMsg));
         const lines = splitLines(msg);
         const totalHeight = lines.length * this.lineHeight();
         let y = Math.floor((this.contents.height - totalHeight) / 2);
@@ -133,10 +141,6 @@ function paramEval(key, def) {
             this.drawTextEx(line, x, y);
             y += this.lineHeight();
         }
-    };
-
-    Window_KeyNameFree.prototype.textWidthEx = function(text) {
-        return Window_ChoiceList.prototype.textWidthEx.call(this, text);
     };
 
   Window_KeyNameFree.prototype.startListening = function() {
@@ -199,7 +203,7 @@ function paramEval(key, def) {
 
   const _Scene_Name_createInputWindow = Scene_Name.prototype.createInputWindow;
   Scene_Name.prototype.createInputWindow = function() {
-      applyQwerty(paramEval("QwertyLayout", true));
+      applyQwerty(paramEval("QwertyLayout", QwertyLayout));
 
       _Scene_Name_createInputWindow.call(this);
       this._gridWindow = this._inputWindow;
@@ -210,10 +214,10 @@ function paramEval(key, def) {
       this._freeWindow.setHandler("ok",  this.onInputOk.bind(this));
       this._freeWindow.setHandler("modechange", this.switchToGrid.bind(this));
 
-      const remember = paramEval("RememberMode", true);
-      const stored   = $gameSystem._FKEE_LastMode;
+      const remember = paramEval("RememberMode", RememberMode);
+      const stored   = $gameSystem.CB_NameInput_LastMode;
       const start    = remember && stored ? stored
-                                          : String(paramEval("StartMode", "keyboard")).toLowerCase();
+                                          : String(paramEval("StartMode", StartMode)).toLowerCase();
 
       if (start === "grid") this.switchToGrid();
       else                   this.switchToFree();
@@ -242,7 +246,7 @@ function paramEval(key, def) {
       this._gridWindow.hide();
       this._freeWindow.show();
       this._freeWindow.startListening();
-      if (paramEval("RememberMode", true)) $gameSystem._FKEE_LastMode = "keyboard";
+      if (paramEval("RememberMode", RememberMode)) $gameSystem.CB_NameInput_LastMode = "keyboard";
   };
 
   Scene_Name.prototype.switchToGrid = function() {
@@ -251,7 +255,7 @@ function paramEval(key, def) {
       this._freeWindow.hide();
       this._gridWindow.show();
       this._gridWindow.activate();
-      if (paramEval("RememberMode", true)) $gameSystem._FKEE_LastMode = "grid";
+      if (paramEval("RememberMode", RememberMode)) $gameSystem.CB_NameInput_LastMode = "grid";
   };
 
   const _Scene_Name_terminate = Scene_Name.prototype.terminate;
